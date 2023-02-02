@@ -17,9 +17,9 @@
 
 syntax = "proto3";
 
-package gwtypes.v1;
+package gwtypes;
 
-option go_package = "github.com/WesleyWu/gowing/protobuf/gwtypes/v1;gwtypes";
+option go_package = "github.com/WesleyWu/gowing/protobuf/gwtypes";
 option java_package = "gowing.protobuf.gwtypes";
 option java_outer_classname = "WrappersProto";
 option java_multiple_files = true;

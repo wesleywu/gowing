@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 
-package gwtypes
+package gwwrapper
 
 import (
+	"github.com/WesleyWu/gowing/protobuf/gwtypes"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -103,55 +104,55 @@ func AnyString(v string) *anypb.Any {
 }
 
 func AnyDoubleSlice(v []float64) *anypb.Any {
-	valueAny := &DoubleSlice{Value: v}
+	valueAny := &gwtypes.DoubleSlice{Value: v}
 	result, _ := anypb.New(valueAny)
 	return result
 }
 
 func AnyFloatSlice(v []float32) *anypb.Any {
-	valueAny := &FloatSlice{Value: v}
+	valueAny := &gwtypes.FloatSlice{Value: v}
 	result, _ := anypb.New(valueAny)
 	return result
 }
 
 func AnyInt64Slice(v []int64) *anypb.Any {
-	valueAny := &Int64Slice{Value: v}
+	valueAny := &gwtypes.Int64Slice{Value: v}
 	result, _ := anypb.New(valueAny)
 	return result
 }
 
 func AnyUInt64Slice(v []uint64) *anypb.Any {
-	valueAny := &UInt64Slice{Value: v}
+	valueAny := &gwtypes.UInt64Slice{Value: v}
 	result, _ := anypb.New(valueAny)
 	return result
 }
 
 func AnyInt32Slice(v []int32) *anypb.Any {
-	valueAny := &Int32Slice{Value: v}
+	valueAny := &gwtypes.Int32Slice{Value: v}
 	result, _ := anypb.New(valueAny)
 	return result
 }
 
 func AnyUInt32Slice(v []uint32) *anypb.Any {
-	valueAny := &UInt32Slice{Value: v}
+	valueAny := &gwtypes.UInt32Slice{Value: v}
 	result, _ := anypb.New(valueAny)
 	return result
 }
 
 func AnyBoolSlice(v []bool) *anypb.Any {
-	valueAny := &BoolSlice{Value: v}
+	valueAny := &gwtypes.BoolSlice{Value: v}
 	result, _ := anypb.New(valueAny)
 	return result
 }
 
 func AnyStringSlice(v []string) *anypb.Any {
-	valueAny := &StringSlice{Value: v}
+	valueAny := &gwtypes.StringSlice{Value: v}
 	result, _ := anypb.New(valueAny)
 	return result
 }
 
-func AnyCondition(operator OperatorType, multi MultiType, wildcard WildcardType, value *anypb.Any) *anypb.Any {
-	valueCondition := &Condition{
+func AnyCondition(operator gwtypes.OperatorType, multi gwtypes.MultiType, wildcard gwtypes.WildcardType, value *anypb.Any) *anypb.Any {
+	valueCondition := &gwtypes.Condition{
 		Operator: operator,
 		Multi:    multi,
 		Wildcard: wildcard,
