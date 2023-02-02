@@ -17,9 +17,12 @@
 
 syntax = "proto3";
 
-package gowing.protobuf;
+package gmeta.v1;
 
-option go_package = "github.com/WesleyWu/gowing/proto/gmeta";
+option go_package = "github.com/WesleyWu/gowing/protobuf/gmeta/v1;gmeta";
+option java_package = "gowing.protobuf.gmeta";
+option java_outer_classname = "WrappersProto";
+option java_multiple_files = true;
 
 enum Meta {
   _ = 0;

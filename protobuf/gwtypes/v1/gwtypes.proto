@@ -17,14 +17,12 @@
 
 syntax = "proto3";
 
-package gowing.protobuf;
+package gwtypes.v1;
 
-option csharp_namespace = "Gowing.Protobuf.WellKnownTypes";
-option go_package = "github.com/WesleyWu/gowing/proto/gwtypes";
-option java_package = "gowing.protobuf";
+option go_package = "github.com/WesleyWu/gowing/protobuf/gwtypes/v1;gwtypes";
+option java_package = "gowing.protobuf.gwtypes";
 option java_outer_classname = "WrappersProto";
 option java_multiple_files = true;
-option objc_class_prefix = "GPB";
 
 import "google/protobuf/any.proto";
 

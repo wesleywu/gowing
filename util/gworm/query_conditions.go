@@ -20,7 +20,7 @@ package gworm
 import (
 	"context"
 	"github.com/WesleyWu/gowing/errors/gwerror"
-	"github.com/WesleyWu/gowing/proto/gwtypes"
+	"github.com/WesleyWu/gowing/protobuf/gen/proto/go/gwtypes/v1"
 	"github.com/WesleyWu/gowing/util/gwstring"
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/encoding/gjson"
