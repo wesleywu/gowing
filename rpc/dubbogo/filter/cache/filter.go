@@ -41,9 +41,6 @@ const (
 	cachedResult     = "cached-result"
 	downgradedResult = "downgraded-result"
 	cacheTagName     = "cache"
-	enabledDefault   = false
-	adapterDefault   = "redis"
-	ttlDefault       = uint32(600)
 )
 
 func init() {
@@ -71,32 +68,59 @@ type cacheFilter struct {
 	cache        gwcache.CacheProvider
 }
 
-type Setting struct {
-	Enabled bool
-	Name    string // todo implements custom specified name
-	Key     string // todo implements custom specified key
-	Adapter string // todo implements memory adapter
-	Ttl     uint32
-}
-
 func (f *cacheFilter) Invoke(ctx context.Context, invoker protocol.Invoker, invocation protocol.Invocation) protocol.Result {
 	ctx, span := gtrace.NewSpan(ctx, "cacheFilter.Invoke")
 	defer span.End()
-	if f.cacheEnabled {
-		result, err := f.getCachedResult(ctx, invoker, invocation)
+	for f.cacheEnabled {
+		// get providerUrl. The origin url may be is registry URL.
+		invokerUrl := invoker.GetURL()
+		providerUrl := getProviderURL(invokerUrl)
+		service := invokerUrl.ServiceKey()
+
+		params := invocation.Arguments()
+		methodName := invocation.ActualMethodName()
+		if len(params) != 1 {
+			g.Log().Warningf(ctx, "cacheFilter will only be applied on RPC method with only 1 non-nil parameter. %s.%s(%s params)", service, methodName, len(params))
+			break
+		}
+		req, ok := params[0].(proto.Message)
+		if req == nil {
+			g.Log().Warningf(ctx, "cacheFilter will only be applied on RPC method with only 1 non-nil parameter of type proto.Message. %s.%s(nil)", service, methodName)
+			break
+		}
+		if !ok {
+			g.Log().Warningf(ctx, "cacheFilter will only be applied on RPC method with only 1 non-nil parameter of type proto.Message. %s.%s(%s)", service, methodName, reflect.TypeOf(req).Kind())
+			break
+		}
+
+		resultType, err := getMethodResultType(ctx, providerUrl, methodName)
+		if err != nil {
+			g.Log().Warningf(ctx, "cache filter failed to determine the return type of RPC method %s.%s(%s)", service, methodName, reflect.TypeOf(req).Kind())
+			break
+		}
+		if resultType.Kind() != reflect.Ptr {
+			g.Log().Warningf(ctx, "The return type of RPC method %s.%s should be a pointer, but a %s", service, methodName, resultType.Kind())
+			break
+		}
+		result, err := f.getCachedResult(ctx, service, methodName, req, resultType)
 		if err != nil { // error occurred when getting cached result
-			return &protocol.RPCResult{
-				Attrs: invocation.Attachments(),
-				Err:   err,
-				Rest:  nil,
+			if err == gwcache.ErrLockTimeout { // 获取锁超时，返回降级的结果
+				invocation.SetAttachment(downgradedResult, true)
+				return &protocol.RPCResult{
+					Attrs: invocation.Attachments(),
+					Err:   nil,
+					Rest:  result,
+				}
+			} else if err == gwcache.ErrNotFound { // cache未找到
+				break
 			}
+			// 其他底层错误
+			g.Log().Errorf(ctx, "%+v", err)
+			break
 		}
 		if result != nil { // cached result exists
 			if gwcache.DebugEnabled {
-				params := invocation.Arguments()
-				service := invoker.GetURL().ServiceKey()
-				methodName := invocation.ActualMethodName()
-				g.Log().Debugf(ctx, "rpc method\n\t%s.%s('%s') returned %s cached result\n\t%s", service, methodName, gjson.MustEncode(params[0]), gwcache.CacheProviderName, gjson.MustEncodeString(result))
+				g.Log().Debugf(ctx, "rpc method\n\t%s.%s('%s') returned %s cached result\n\t%s", service, methodName, gjson.MustEncode(req), gwcache.CacheProviderName, gjson.MustEncodeString(result))
 			}
 			invocation.SetAttachment(cachedResult, true)
 			return &protocol.RPCResult{
@@ -105,79 +129,52 @@ func (f *cacheFilter) Invoke(ctx context.Context, invoker protocol.Invoker, invo
 				Rest:  result,
 			}
 		}
+		break
 	}
-	// no error or cached result, proceed to RPC call
+	// no cached result, proceed to RPC call
 	return invoker.Invoke(ctx, invocation)
 }
 
-func (f *cacheFilter) OnResponse(ctx context.Context, result protocol.Result, invoker protocol.Invoker, invocation protocol.Invocation) protocol.Result {
+func (f *cacheFilter) OnResponse(ctx context.Context, res protocol.Result, invoker protocol.Invoker, invocation protocol.Invocation) protocol.Result {
 	ctx, span := gtrace.NewSpan(ctx, "cacheFilter.OnResponse")
 	defer span.End()
 	if f.cacheEnabled {
-		if gconv.Bool(result.Attachment(cachedResult, false)) { // is a cached result
-			return result
+		if gconv.Bool(res.Attachment(cachedResult, false)) { // is a cached res
+			return res
 		}
-		if result != nil && result.Error() == nil { // normal result without error, may need to save it back to cache
-			err := f.saveCachedResult(ctx, invoker, invocation, result.Result())
+		if res != nil && res.Error() == nil { // normal res without error, may need to save it back to cache
+			// get providerUrl. The origin url may be is registry URL.
+			invokerUrl := invoker.GetURL()
+			service := invokerUrl.ServiceKey()
+
+			params := invocation.Arguments()
+			methodName := invocation.ActualMethodName()
+
+			if len(params) != 1 {
+				g.Log().Warningf(ctx, "cacheFilter will only be applied on RPC method with only 1 non-nil parameter. %s.%s(%s params)", service, methodName, len(params))
+				return res
+			}
+			req, ok := params[0].(proto.Message)
+			if req == nil {
+				g.Log().Warningf(ctx, "cacheFilter will only be applied on RPC method with only 1 non-nil parameter of type proto.Message. %s.%s(nil)", service, methodName)
+				return res
+			}
+			if !ok {
+				g.Log().Warningf(ctx, "cacheFilter will only be applied on RPC method with only 1 non-nil parameter of type proto.Message. %s.%s(%s)", service, methodName, reflect.TypeOf(req).Kind())
+				return res
+			}
+
+			err := f.saveCachedResult(ctx, service, methodName, req, res.Result())
 			if err != nil {
 				g.Log().Error(ctx, "Error saving response back to cache: ", err)
 			} else {
 				if gwcache.DebugEnabled {
-					params := invocation.Arguments()
-					service := invoker.GetURL().ServiceKey()
-					methodName := invocation.ActualMethodName()
-					g.Log().Debugf(ctx, "saved result of rpc method\n\t%s.%s('%s') to %s cache\n\t%s", service, methodName, gjson.MustEncode(params[0]), gwcache.CacheProviderName, gjson.MustEncodeString(result.Result()))
+					g.Log().Debugf(ctx, "saved res of rpc method\n\t%s.%s('%s') to %s cache\n\t%s", service, methodName, gjson.MustEncode(params[0]), gwcache.CacheProviderName, gjson.MustEncodeString(res.Result()))
 				}
 			}
 		}
 	}
-	return result
-}
-
-func parseCacheTag(ctx context.Context, cacheTag string) Setting {
-	ctx, span := gtrace.NewSpan(ctx, "parseCacheTag")
-	defer span.End()
-	if cacheTag == "" {
-		return Setting{
-			Enabled: enabledDefault,
-			Adapter: adapterDefault,
-			Ttl:     ttlDefault,
-		}
-	}
-	enabled := enabledDefault
-	name := ""
-	key := ""
-	adapter := adapterDefault
-	ttl := ttlDefault
-	for _, s := range strings.Split(cacheTag, ",") {
-		s = strings.Trim(s, " ")
-		attrib := strings.Split(strings.Trim(s, " "), "=")
-		if len(attrib) == 1 && attrib[0] == "true" {
-			enabled = true
-			continue
-		}
-		if len(attrib) == 2 {
-			attribName := strings.Trim(attrib[0], " ")
-			attribValue := strings.Trim(attrib[1], " ")
-			switch attribName {
-			case "name":
-				name = attribValue
-			case "key":
-				key = attribValue
-			case "adapter":
-				adapter = attribValue
-			case "ttl":
-				ttl = gconv.Uint32(attribValue)
-			}
-		}
-	}
-	return Setting{
-		Enabled: enabled,
-		Name:    name,
-		Key:     key,
-		Adapter: adapter,
-		Ttl:     ttl,
-	}
+	return res
 }
 
 func getProviderURL(url *common.URL) *common.URL {
@@ -187,11 +184,7 @@ func getProviderURL(url *common.URL) *common.URL {
 	return url.SubURL
 }
 
-func getMethodResultType(_ context.Context, invoker protocol.Invoker, invocation protocol.Invocation) (reflect.Type, error) {
-	// get providerUrl. The origin url may be is registry URL.
-	url := getProviderURL(invoker.GetURL())
-
-	methodName := invocation.MethodName()
+func getMethodResultType(_ context.Context, url *common.URL, methodName string) (reflect.Type, error) {
 	urlProtocol := url.Protocol
 	path := strings.TrimPrefix(url.Path, "/")
 
@@ -209,27 +202,9 @@ func getMethodResultType(_ context.Context, invoker protocol.Invoker, invocation
 	return method.ReplyType(), nil
 }
 
-func (f *cacheFilter) getCachedResult(ctx context.Context, invoker protocol.Invoker, invocation protocol.Invocation) (interface{}, error) {
+func (f *cacheFilter) getCachedResult(ctx context.Context, service, methodName string, req proto.Message, resultType reflect.Type) (interface{}, error) {
 	ctx, span := gtrace.NewSpan(ctx, "getCachedResult")
 	defer span.End()
-	params := invocation.Arguments()
-	service := invoker.GetURL().ServiceKey()
-	methodName := invocation.ActualMethodName()
-	if len(params) != 1 {
-		g.Log().Warningf(ctx, "cacheFilter will only be applied on RPC method with only 1 non-nil parameter. service name: %s, method Name: %s, param count: %s", service, methodName, len(params))
-		return nil, nil
-	}
-	req, ok := params[0].(proto.Message)
-	if req == nil {
-		g.Log().Warningf(ctx, "cacheFilter will only be applied on RPC method with only 1 non-nil parameter of type proto.Message. service name: %s, method Name: %s, param is nil", service, methodName)
-		return nil, nil
-	}
-	if !ok {
-		g.Log().Warningf(ctx, "cacheFilter will only be applied on RPC method with only 1 non-nil parameter of type proto.Message. service name: %s, method Name: %s, param type: %s", service, methodName, reflect.TypeOf(req).Kind())
-		return nil, nil
-	}
-	//g.Log().Debugf(ctx, "cacheFilter Invoke is called, service name: %s, method Name: %s, param value: %s", service, methodName, gjson.MustEncodeString(req))
-
 	metaField, err := gwreflect.GetMetaField(ctx, req)
 	if err != nil {
 		return nil, err
@@ -238,7 +213,7 @@ func (f *cacheFilter) getCachedResult(ctx context.Context, invoker protocol.Invo
 		return nil, nil
 	}
 
-	cacheSetting := parseCacheTag(ctx, metaField.Tag.Get(cacheTagName))
+	cacheSetting := gwcache.ParseCacheTag(ctx, metaField.Tag.Get(cacheTagName))
 	if !cacheSetting.Enabled {
 		return nil, nil
 	}
@@ -251,15 +226,8 @@ func (f *cacheFilter) getCachedResult(ctx context.Context, invoker protocol.Invo
 		g.Log().Warning(ctx, "cacheFilter invoke error: cache not initialized")
 		return nil, nil
 	}
-	methodResultType, err := getMethodResultType(ctx, invoker, invocation)
-	if err != nil {
-		return nil, err
-	}
-	if methodResultType.Kind() != reflect.Ptr {
-		return nil, gerror.Newf("The return type of RPC method %s.%s should be a pointer", service, methodName)
-	}
 	// instantiate result as a pointer of result type
-	result, ok := reflect.New(methodResultType.Elem()).Interface().(proto.Message)
+	result, ok := reflect.New(resultType.Elem()).Interface().(proto.Message)
 	if !ok {
 		return nil, gerror.Newf("The return type of RPC method %s.%s should be a protobuf message", service, methodName)
 	}
@@ -268,40 +236,14 @@ func (f *cacheFilter) getCachedResult(ctx context.Context, invoker protocol.Invo
 		return nil, err
 	}
 	err = f.cache.RetrieveCacheTo(ctx, cacheKey, result)
-	if err != nil {
-		if err == gwcache.ErrLockTimeout { // 获取锁超时，返回降级的结果
-			invocation.SetAttachment(downgradedResult, true)
-			return &protocol.RPCResult{
-				Attrs: invocation.Attachments(),
-				Err:   nil,
-				Rest:  result,
-			}, nil
-		} else if err == gwcache.ErrNotFound { // cache 未找到，执行底层操作
-			return nil, nil
-		}
-		// 其他底层错误
-		g.Log().Errorf(ctx, "%+v", err)
-		return nil, nil
-	}
 	// 返回缓存的结果
-	return result, nil
+	return result, err
 }
 
-func (f *cacheFilter) saveCachedResult(ctx context.Context, invoker protocol.Invoker, invocation protocol.Invocation, result interface{}) error {
+func (f *cacheFilter) saveCachedResult(ctx context.Context, service, methodName string, req proto.Message, result interface{}) error {
 	ctx, span := gtrace.NewSpan(ctx, "saveCachedResult")
 	defer span.End()
 	if result == nil || f.cache == nil || !f.cache.Initialized() {
-		return nil
-	}
-	params := invocation.Arguments()
-	if len(params) != 1 {
-		return nil
-	}
-	req, ok := params[0].(proto.Message)
-	if req == nil {
-		return nil
-	}
-	if !ok {
 		return nil
 	}
 	metaField, err := gwreflect.GetMetaField(ctx, req)
@@ -311,14 +253,12 @@ func (f *cacheFilter) saveCachedResult(ctx context.Context, invoker protocol.Inv
 	if metaField == nil {
 		return nil
 	}
-	cacheSetting := parseCacheTag(ctx, metaField.Tag.Get(cacheTagName))
+	cacheSetting := gwcache.ParseCacheTag(ctx, metaField.Tag.Get(cacheTagName))
 	if !cacheSetting.Enabled {
 		return nil
 	}
 	ttlSeconds := cacheSetting.Ttl
 
-	service := invoker.GetURL().ServiceKey()
-	methodName := invocation.ActualMethodName()
 	cacheKey := gwcache.GetCacheKey(ctx, service, methodName, req)
 	if cacheKey != nil {
 		return f.cache.SaveCache(ctx, service, cacheKey, result, ttlSeconds)
