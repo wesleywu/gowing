@@ -109,10 +109,15 @@ func ToProtoMessage[T proto.Message](ctx context.Context, ptr interface{}, allow
 			} else {
 				allFieldsNil = false
 			}
-			if srcField.Type.Kind() == reflect.Interface { // 源字段为 interface 时，需要做转换
-				srcFieldValue = convertToType(srcFieldValue, destField.Type)
+			if srcField.Type.Kind() == reflect.Interface { // 对于正常字段，源字段通常为 interface，需要做转换
+				srcFieldValueReal := srcFieldValue.Interface()
+				if srcFieldValueReal != nil { // 仅当源字段实际值不为 nil 时，才向目标字段复制
+					srcFieldValue = convertToType(srcFieldValueReal, destField.Type)
+					destFieldValue.Set(srcFieldValue)
+				}
+			} else { // 对于 Page/PageSize/OrderBy 等字段，走这个分支
+				destFieldValue.Set(srcFieldValue)
 			}
-			destFieldValue.Set(srcFieldValue)
 		}
 	}
 	if !allowAllNilFields && allFieldsNil {
@@ -136,8 +141,8 @@ func defaultValueIfZero(field reflect.StructField, value reflect.Value) reflect.
 	return reflect.ValueOf(tagValueConverted)
 }
 
-func convertToType(value reflect.Value, fieldType reflect.Type) reflect.Value {
-	converted := gconv.Convert(value.Interface(), fieldType.String())
+func convertToType(value interface{}, fieldType reflect.Type) reflect.Value {
+	converted := gconv.Convert(value, fieldType.String())
 	return reflect.ValueOf(converted)
 }
 
