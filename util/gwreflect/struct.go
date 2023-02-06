@@ -25,6 +25,7 @@ import (
 	"reflect"
 )
 
+// MergeDefaultStructValue todo move this func to filter/interceptor
 func MergeDefaultStructValue(_ context.Context, pointer interface{}) error {
 	defaultValueTags := []string{gtag.DefaultShort, gtag.Default}
 	tagFields, err := gstructs.TagFields(pointer, defaultValueTags)

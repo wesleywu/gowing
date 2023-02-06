@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/WesleyWu/gowing/errors/gwerror"
 	"github.com/WesleyWu/gowing/protobuf/gwtypes"
-	"github.com/WesleyWu/gowing/util/gwstring"
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -33,6 +32,7 @@ import (
 	"strings"
 )
 
+// todo gworm package is deprecated
 const (
 	ConditionQueryPrefix = "condition{"
 	ConditionQuerySuffix = "}"
@@ -71,7 +71,7 @@ func ParseConditions(ctx context.Context, req interface{}, columnMap map[string]
 			continue
 		}
 		// Only do converting to public attributes.
-		if !gwstring.IsLetterUpper(fieldName[0]) {
+		if !field.IsExported() {
 			continue
 		}
 		fieldType := field.Type
@@ -144,42 +144,41 @@ func unwrapAny(columnName string, tag reflect.StructTag, valueAny *anypb.Any, m 
 
 	switch vt := v.(type) {
 	case *gwtypes.BoolSlice:
-		return parseFieldSlice(columnName, tag, v.(*gwtypes.BoolSlice).Value, m)
+		return parseFieldSlice(columnName, tag, vt.Value, m)
 	case *gwtypes.DoubleSlice:
-		return parseFieldSlice(columnName, tag, v.(*gwtypes.DoubleSlice).Value, m)
+		return parseFieldSlice(columnName, tag, vt.Value, m)
 	case *gwtypes.FloatSlice:
-		return parseFieldSlice(columnName, tag, v.(*gwtypes.FloatSlice).Value, m)
+		return parseFieldSlice(columnName, tag, vt.Value, m)
 	case *gwtypes.UInt32Slice:
-		return parseFieldSlice(columnName, tag, v.(*gwtypes.UInt32Slice).Value, m)
+		return parseFieldSlice(columnName, tag, vt.Value, m)
 	case *gwtypes.UInt64Slice:
-		return parseFieldSlice(columnName, tag, v.(*gwtypes.UInt64Slice).Value, m)
+		return parseFieldSlice(columnName, tag, vt.Value, m)
 	case *gwtypes.Int32Slice:
-		return parseFieldSlice(columnName, tag, v.(*gwtypes.Int32Slice).Value, m)
+		return parseFieldSlice(columnName, tag, vt.Value, m)
 	case *gwtypes.Int64Slice:
-		return parseFieldSlice(columnName, tag, v.(*gwtypes.Int64Slice).Value, m)
+		return parseFieldSlice(columnName, tag, vt.Value, m)
 	case *gwtypes.StringSlice:
-		return parseFieldSlice(columnName, tag, v.(*gwtypes.StringSlice).Value, m)
+		return parseFieldSlice(columnName, tag, vt.Value, m)
 	case *wrapperspb.BoolValue:
-		return m.Where(columnName, v.(*wrapperspb.BoolValue).Value), nil
+		return m.Where(columnName, vt.Value), nil
 	case *wrapperspb.BytesValue:
-		return m.Where(columnName, v.(*wrapperspb.BytesValue).Value), nil
+		return m.Where(columnName, vt.Value), nil
 	case *wrapperspb.DoubleValue:
-		return m.Where(columnName, v.(*wrapperspb.DoubleValue).Value), nil
+		return m.Where(columnName, vt.Value), nil
 	case *wrapperspb.FloatValue:
-		return m.Where(columnName, v.(*wrapperspb.FloatValue).Value), nil
+		return m.Where(columnName, vt.Value), nil
 	case *wrapperspb.Int32Value:
-		return m.Where(columnName, v.(*wrapperspb.Int32Value).Value), nil
+		return m.Where(columnName, vt.Value), nil
 	case *wrapperspb.Int64Value:
-		return m.Where(columnName, v.(*wrapperspb.Int64Value).Value), nil
+		return m.Where(columnName, vt.Value), nil
 	case *wrapperspb.UInt32Value:
-		return m.Where(columnName, v.(*wrapperspb.UInt32Value).Value), nil
+		return m.Where(columnName, vt.Value), nil
 	case *wrapperspb.UInt64Value:
-		return m.Where(columnName, v.(*wrapperspb.UInt64Value).Value), nil
+		return m.Where(columnName, vt.Value), nil
 	case *wrapperspb.StringValue:
-		return m.Where(columnName, v.(*wrapperspb.StringValue).Value), nil
+		return m.Where(columnName, vt.Value), nil
 	case *gwtypes.Condition:
-		condition := v.(*gwtypes.Condition)
-		return AddCondition1(columnName, condition, m)
+		return AddCondition1(columnName, vt, m)
 	default:
 		return nil, gerror.Newf("Unsupported value type: %v", vt)
 	}
@@ -200,7 +199,7 @@ func parseField(ctx context.Context, req interface{}, columnName string, tag ref
 		valueSlice := gconv.SliceAny(value)
 		multiTag, ok := tag.Lookup(TagNameMulti)
 		if ok {
-			multi, err := ParseMultiType(multiTag)
+			multi, err := gwtypes.ParseMultiType(multiTag)
 			if err != nil {
 				return nil, err
 			}
@@ -210,7 +209,7 @@ func parseField(ctx context.Context, req interface{}, columnName string, tag ref
 			case 1:
 				return m.Where(columnName, valueSlice[0]), nil
 			case 2:
-				if multi == Between {
+				if multi == gwtypes.MultiType_Between {
 					return m.WhereBetween(columnName, valueSlice[0], valueSlice[1]), nil
 				}
 			default:
@@ -246,16 +245,16 @@ func parseField(ctx context.Context, req interface{}, columnName string, tag ref
 		}
 		wildcardString, ok := tag.Lookup(TagNameWildcard)
 		if ok {
-			wildcard, err := ParseWildcardType(wildcardString)
+			wildcard, err := gwtypes.ParseWildcardType(wildcardString)
 			if err != nil {
 				return nil, err
 			}
 			switch wildcard {
-			case Contains:
+			case gwtypes.WildcardType_Contains:
 				return m.WhereLike(columnName, "%"+valueString+"%"), nil
-			case StartsWith:
+			case gwtypes.WildcardType_StartsWith:
 				return m.WhereLike(columnName, valueString+"%"), nil
-			case EndsWith:
+			case gwtypes.WildcardType_EndsWith:
 				return m.WhereLike(columnName, "%"+valueString), nil
 			default:
 				return m.WhereIn(columnName, valueString), nil
@@ -274,7 +273,7 @@ func parseFieldSlice[T any](columnName string, tag reflect.StructTag, value []T,
 		return m, nil
 	}
 	if multiTag, ok := tag.Lookup(TagNameMulti); ok {
-		multi, err := ParseMultiType(multiTag)
+		multi, err := gwtypes.ParseMultiType(multiTag)
 		if err != nil {
 			return nil, err
 		}
@@ -284,7 +283,7 @@ func parseFieldSlice[T any](columnName string, tag reflect.StructTag, value []T,
 		case 1:
 			return m.Where(columnName, value[0]), nil
 		case 2:
-			if multi == Between {
+			if multi == gwtypes.MultiType_Between {
 				return m.WhereBetween(columnName, value[0], value[1]), nil
 			}
 		default:

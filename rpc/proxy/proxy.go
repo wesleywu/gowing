@@ -15,12 +15,15 @@
  * limitations under the License.
  */
 
-package inproc
+package proxy
 
 import (
+	"context"
 	"github.com/WesleyWu/gowing/rpc/inproc/interceptor/cache"
 	"github.com/WesleyWu/gowing/rpc/inproc/types"
+	"github.com/WesleyWu/gowing/util/gwconv"
 	"google.golang.org/protobuf/proto"
+	"reflect"
 )
 
 // NewInvocationProxy is a proxy function which wrap the original function with interceptors
@@ -36,4 +39,23 @@ func NewInvocationProxy[TReq proto.Message, TRes proto.Message](serviceName, met
 		invocation = interceptor(invocation)
 	}
 	return invocation.Method
+}
+
+func CallServiceMethod[TReq proto.Message, TRes proto.Message, Req interface{}, Res interface{}](
+	ctx context.Context, req Req, allowAllNilFields bool, fn types.MethodFunc[TReq, TRes]) (res Res, err error) {
+	var (
+		in  TReq
+		out TRes
+	)
+	in, err = gwconv.ToProtoMessage[TReq](ctx, req, allowAllNilFields)
+	if err != nil {
+		return
+	}
+	out, err = fn(ctx, in)
+	if err != nil {
+		return
+	}
+	res = reflect.New(reflect.TypeOf(res).Elem()).Interface().(Res)
+	err = gwconv.FromProtoMessage(ctx, out, res)
+	return
 }
