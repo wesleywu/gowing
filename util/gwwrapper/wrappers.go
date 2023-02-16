@@ -24,9 +24,11 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/util/gconv"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"reflect"
 	"strings"
+	"time"
 )
 
 const (
@@ -72,6 +74,10 @@ func WrapBool(v bool) *bool {
 
 func WrapString(v string) *string {
 	return &v
+}
+
+func WrapTimestamp(v time.Time) *timestamppb.Timestamp {
+	return timestamppb.New(v)
 }
 
 func AnyDouble(v float64) *anypb.Any {

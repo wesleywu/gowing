@@ -29,6 +29,12 @@ import (
 	"reflect"
 )
 
+// IUnmarshallable is the interface for custom defined types customizing value assignment.
+// Note that only pointer can implement interface iUnmarshalValue.
+type IUnmarshallable interface {
+	UnmarshalValue(interface{}) error
+}
+
 var anyType = reflect.TypeOf(anypb.Any{})
 
 func ToProtoMessage[T proto.Message](ctx context.Context, ptr interface{}, allowAllNilFields bool) (result T, err error) {
@@ -146,10 +152,9 @@ func convertToType(value interface{}, fieldType reflect.Type) reflect.Value {
 	return reflect.ValueOf(converted)
 }
 
-func FromProtoMessage[T proto.Message, Out interface{}](ctx context.Context, message T, result Out) error {
-	err := gconv.Struct(message, result)
-	if err != nil {
-		return err
+func FromProtoMessage[TRes proto.Message](ctx context.Context, message TRes, result interface{}) error {
+	if unmarshallable, ok := result.(IUnmarshallable); ok {
+		return unmarshallable.UnmarshalValue(message)
 	}
-	return nil
+	return gconv.Struct(message, result)
 }

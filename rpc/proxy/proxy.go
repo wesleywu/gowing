@@ -56,6 +56,6 @@ func CallServiceMethod[TReq proto.Message, TRes proto.Message, Req interface{}, 
 		return
 	}
 	res = reflect.New(reflect.TypeOf(res).Elem()).Interface().(Res)
-	err = gwconv.FromProtoMessage(ctx, out, res)
+	err = gwconv.FromProtoMessage[TRes](ctx, out, res)
 	return
 }
