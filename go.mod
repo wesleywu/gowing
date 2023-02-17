@@ -3,26 +3,26 @@ module github.com/WesleyWu/gowing
 go 1.19
 
 require (
-	dubbo.apache.org/dubbo-go/v3 v3.0.4-rc1
+	dubbo.apache.org/dubbo-go/v3 v3.0.5
 	github.com/bsm/redislock v0.9.0
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/gogf/gf/v2 v2.3.1
+	github.com/gogf/gf/v2 v2.3.2
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/redis/go-redis/extra/redisotel/v9 v9.0.2
 	github.com/redis/go-redis/v9 v9.0.2
-	go.opentelemetry.io/otel v1.12.0
-	go.opentelemetry.io/otel/trace v1.12.0
+	go.opentelemetry.io/otel v1.13.0
+	go.opentelemetry.io/otel/trace v1.13.0
 	google.golang.org/protobuf v1.28.1
 )
 
 require (
 	contrib.go.opencensus.io/exporter/prometheus v0.4.1 // indirect
 	github.com/BurntSushi/toml v1.1.0 // indirect
-	github.com/RoaringBitmap/roaring v1.2.0 // indirect
+	github.com/RoaringBitmap/roaring v1.2.3 // indirect
 	github.com/Workiva/go-datastructures v1.0.52 // indirect
 	github.com/apache/dubbo-getty v1.4.9-0.20221022181821-4dc6252ce98c // indirect
-	github.com/apache/dubbo-go-hessian2 v1.11.4 // indirect
+	github.com/apache/dubbo-go-hessian2 v1.11.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
 	github.com/clbanning/mxj/v2 v2.5.5 // indirect
@@ -44,14 +44,15 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grokify/html-strip-tags-go v0.0.1 // indirect
 	github.com/jinzhu/copier v0.3.5 // indirect
 	github.com/k0kubun/pp v3.0.1+incompatible // indirect
-	github.com/knadh/koanf v1.4.4 // indirect
+	github.com/knadh/koanf v1.5.0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
-	github.com/magiconair/properties v1.8.6 // indirect
+	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.9 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
@@ -70,7 +71,6 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/prometheus/statsd_exporter v0.21.0 // indirect
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.0.2 // indirect
-	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b // indirect
 	github.com/shirou/gopsutil/v3 v3.22.2 // indirect
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
 	github.com/tklauser/numcpus v0.4.0 // indirect
