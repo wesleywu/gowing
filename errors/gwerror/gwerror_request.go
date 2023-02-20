@@ -22,6 +22,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/lib/pq"
 )
 
 type RequestError struct {
@@ -83,6 +84,15 @@ func DbErrorToRequestError(req interface{}, err error, dbType string) (error, bo
 			case 1062:
 				return NewPkConflictErrorf(req, "%v: %v", "主键冲突", driverError.Error()), true
 			case 1406:
+				return NewDataTooLongErrorf(req, "%v: %v", "数据过长", driverError.Error()), true
+			}
+		}
+	case "pgsql":
+		if driverError, ok := underlyingError.(*pq.Error); ok {
+			switch driverError.Code {
+			case "23505":
+				return NewPkConflictErrorf(req, "%v: %v", "主键冲突", driverError.Error()), true
+			case "22001":
 				return NewDataTooLongErrorf(req, "%v: %v", "数据过长", driverError.Error()), true
 			}
 		}

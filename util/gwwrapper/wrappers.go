@@ -22,6 +22,7 @@ import (
 	"github.com/WesleyWu/gowing/protobuf/gwtypes"
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/util/gconv"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -44,40 +45,110 @@ const (
 	FieldNameValue    = "value"
 )
 
-func WrapDouble(v float64) *float64 {
-	return &v
+func WrapDouble(v interface{}) *float64 {
+	if v == nil {
+		return nil
+	}
+	if r, ok := v.(float64); ok {
+		return &r
+	}
+	r := gconv.Float64(v)
+	return &r
 }
 
-func WrapFloat(v float32) *float32 {
-	return &v
+func WrapFloat(v interface{}) *float32 {
+	if v == nil {
+		return nil
+	}
+	if r, ok := v.(float32); ok {
+		return &r
+	}
+	r := gconv.Float32(v)
+	return &r
 }
 
-func WrapInt64(v int64) *int64 {
-	return &v
+func WrapInt64(v interface{}) *int64 {
+	if v == nil {
+		return nil
+	}
+	if r, ok := v.(int64); ok {
+		return &r
+	}
+	r := gconv.Int64(v)
+	return &r
 }
 
-func WrapUInt64(v uint64) *uint64 {
-	return &v
+func WrapUInt64(v interface{}) *uint64 {
+	if v == nil {
+		return nil
+	}
+	if r, ok := v.(uint64); ok {
+		return &r
+	}
+	r := gconv.Uint64(v)
+	return &r
 }
 
-func WrapInt32(v int32) *int32 {
-	return &v
+func WrapInt32(v interface{}) *int32 {
+	if v == nil {
+		return nil
+	}
+	if r, ok := v.(int32); ok {
+		return &r
+	}
+	r := gconv.Int32(v)
+	return &r
 }
 
-func WrapUInt32(v uint32) *uint32 {
-	return &v
+func WrapUInt32(v interface{}) *uint32 {
+	if v == nil {
+		return nil
+	}
+	if r, ok := v.(uint32); ok {
+		return &r
+	}
+	r := gconv.Uint32(v)
+	return &r
 }
 
-func WrapBool(v bool) *bool {
-	return &v
+func WrapBool(v interface{}) *bool {
+	if v == nil {
+		return nil
+	}
+	if r, ok := v.(bool); ok {
+		return &r
+	}
+	r := gconv.Bool(v)
+	return &r
 }
 
-func WrapString(v string) *string {
-	return &v
+func WrapString(v interface{}) *string {
+	if v == nil {
+		return nil
+	}
+	if r, ok := v.(string); ok {
+		return &r
+	}
+	r := gconv.String(v)
+	return &r
 }
 
-func WrapTimestamp(v time.Time) *timestamppb.Timestamp {
-	return timestamppb.New(v)
+func WrapTimestamp(v interface{}) *timestamppb.Timestamp {
+	if v == nil {
+		return nil
+	}
+	switch r := v.(type) {
+	case time.Time:
+		return timestamppb.New(r)
+	case *time.Time:
+		return timestamppb.New(*r)
+	case gtime.Time:
+		return timestamppb.New(r.Time)
+	case *gtime.Time:
+		return timestamppb.New(r.Time)
+	default:
+		return timestamppb.New(gtime.New(v).Time)
+	}
 }
 
 func AnyDouble(v float64) *anypb.Any {

@@ -8,6 +8,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gogf/gf/v2 v2.3.2
+	github.com/lib/pq v1.10.7
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/redis/go-redis/extra/redisotel/v9 v9.0.2
 	github.com/redis/go-redis/v9 v9.0.2

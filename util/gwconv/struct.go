@@ -35,9 +35,16 @@ type IUnmarshallable interface {
 	UnmarshalValue(interface{}) error
 }
 
+type IMarshallableMessage[T proto.Message] interface {
+	MarshalValue() (T, error)
+}
+
 var anyType = reflect.TypeOf(anypb.Any{})
 
 func ToProtoMessage[T proto.Message](ctx context.Context, ptr interface{}, allowAllNilFields bool) (result T, err error) {
+	if marshallable, ok := ptr.(IMarshallableMessage[T]); ok {
+		return marshallable.MarshalValue()
+	}
 	var (
 		srcType        reflect.Type
 		srcElemType    reflect.Type
@@ -148,6 +155,30 @@ func defaultValueIfZero(field reflect.StructField, value reflect.Value) reflect.
 }
 
 func convertToType(value interface{}, fieldType reflect.Type) reflect.Value {
+	if fieldType.Kind() == reflect.Ptr {
+		switch fieldType.Elem().Kind() {
+		case reflect.Float64:
+			return reflect.ValueOf(gwwrapper.WrapDouble(value))
+		case reflect.Float32:
+			return reflect.ValueOf(gwwrapper.WrapFloat(value))
+		case reflect.Int64:
+			return reflect.ValueOf(gwwrapper.WrapInt64(value))
+		case reflect.Uint64:
+			return reflect.ValueOf(gwwrapper.WrapUInt64(value))
+		case reflect.Int32:
+			return reflect.ValueOf(gwwrapper.WrapInt32(value))
+		case reflect.Uint32:
+			return reflect.ValueOf(gwwrapper.WrapUInt32(value))
+		case reflect.Bool:
+			return reflect.ValueOf(gwwrapper.WrapBool(value))
+		case reflect.String:
+			return reflect.ValueOf(gwwrapper.WrapString(value))
+		default:
+			if fieldType.Elem().String() == "timestamppb.Timestamp" {
+				return reflect.ValueOf(gwwrapper.WrapTimestamp(value))
+			}
+		}
+	}
 	converted := gconv.Convert(value, fieldType.String())
 	return reflect.ValueOf(converted)
 }
