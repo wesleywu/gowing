@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/WesleyWu/gowing/errors/gwerror"
 	"github.com/WesleyWu/gowing/protobuf/gwtypes"
-	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
@@ -52,7 +51,7 @@ type Condition struct {
 // queryPtr    传入 query 结构指针的值
 // columnMap   表的字段定义map，key为GoField，value为表字段名
 // m           gdb.Model
-func ParseConditions(ctx context.Context, req interface{}, columnMap map[string]string, m *gdb.Model) (*gdb.Model, error) {
+func ParseConditions(ctx context.Context, req interface{}, columnMap map[string]string, m *Model) (*Model, error) {
 	var err error
 	p := reflect.TypeOf(req)
 	if p.Kind() != reflect.Ptr { // 要求传入值必须是个指针
@@ -133,7 +132,7 @@ func ParseConditions(ctx context.Context, req interface{}, columnMap map[string]
 	return m, nil
 }
 
-func unwrapAny(columnName string, tag reflect.StructTag, valueAny *anypb.Any, m *gdb.Model) (*gdb.Model, error) {
+func unwrapAny(columnName string, tag reflect.StructTag, valueAny *anypb.Any, m *Model) (*Model, error) {
 	if valueAny == nil {
 		return m, nil
 	}
@@ -184,7 +183,7 @@ func unwrapAny(columnName string, tag reflect.StructTag, valueAny *anypb.Any, m 
 	}
 }
 
-func parseField(ctx context.Context, req interface{}, columnName string, tag reflect.StructTag, value interface{}, m *gdb.Model) (*gdb.Model, error) {
+func parseField(ctx context.Context, req interface{}, columnName string, tag reflect.StructTag, value interface{}, m *Model) (*Model, error) {
 	if value == nil {
 		return m, nil
 	}
@@ -268,7 +267,7 @@ func parseField(ctx context.Context, req interface{}, columnName string, tag ref
 	return m, nil
 }
 
-func parseFieldSlice[T any](columnName string, tag reflect.StructTag, value []T, m *gdb.Model) (*gdb.Model, error) {
+func parseFieldSlice[T any](columnName string, tag reflect.StructTag, value []T, m *Model) (*Model, error) {
 	if value == nil {
 		return m, nil
 	}
@@ -302,7 +301,7 @@ func parseFieldSlice[T any](columnName string, tag reflect.StructTag, value []T,
 	return m, nil
 }
 
-func parseFieldConditionSingle(columnName string, condition *gwtypes.Condition, value interface{}, m *gdb.Model) (*gdb.Model, error) {
+func parseFieldConditionSingle(columnName string, condition *gwtypes.Condition, value interface{}, m *Model) (*Model, error) {
 	if value == nil && condition.Operator != gwtypes.OperatorType_Null && condition.Operator != gwtypes.OperatorType_NotNull {
 		return m, nil
 	}
@@ -366,7 +365,7 @@ func parseFieldConditionSingle(columnName string, condition *gwtypes.Condition, 
 	return m, nil
 }
 
-func parseFieldConditionSlice[T any](columnName string, condition *gwtypes.Condition, valueSlice []T, m *gdb.Model) (*gdb.Model, error) {
+func parseFieldConditionSlice[T any](columnName string, condition *gwtypes.Condition, valueSlice []T, m *Model) (*Model, error) {
 	valueLen := len(valueSlice)
 	if valueLen == 0 {
 		return m, nil
@@ -426,7 +425,7 @@ func parseFieldConditionSlice[T any](columnName string, condition *gwtypes.Condi
 	return m, nil
 }
 
-func AddCondition1(columnName string, condition *gwtypes.Condition, m *gdb.Model) (*gdb.Model, error) {
+func AddCondition1(columnName string, condition *gwtypes.Condition, m *Model) (*Model, error) {
 	if condition == nil {
 		return m, nil
 	}
@@ -478,7 +477,7 @@ func AddCondition1(columnName string, condition *gwtypes.Condition, m *gdb.Model
 	}
 }
 
-func AddCondition(_ context.Context, columnName string, condition *Condition, m *gdb.Model) (*gdb.Model, error) {
+func AddCondition(_ context.Context, columnName string, condition *Condition, m *Model) (*Model, error) {
 	if condition == nil {
 		return m, nil
 	}
