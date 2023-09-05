@@ -2,27 +2,22 @@ package mongodb
 
 import (
 	"context"
-	"fmt"
+	"reflect"
+
 	"github.com/WesleyWu/gowing/util/gworm/mongodb/internal/reflection"
 	"github.com/gogf/gf/v2/container/gset"
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/os/gtime"
-	"github.com/gogf/gf/v2/text/gstr"
-	"github.com/gogf/gf/v2/util/gconv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"reflect"
 )
 
 type Model struct {
-	db             Core
 	tablesInit     string
 	collection     *mongo.Collection
 	data           interface{}   // Data for operation, which can be type of map/[]map/struct/*struct/string, etc.
 	extraArgs      []interface{} // Extra custom arguments for sql, which are prepended to the arguments before sql committed to underlying driver.
-	whereBuilder   *WhereBuilder // Condition builder for where operation.
 	filter         bson.D
 	fieldsIncluded *gset.StrSet
 	fieldsExcluded *gset.StrSet
@@ -48,9 +43,10 @@ const (
 	whereHolderTypeIn        = "In"
 )
 
-func NewModel(collection *mongo.Collection) *Model {
+func NewModel(ctx context.Context, collectionName string) *Model {
 	return &Model{
-		collection: collection,
+		collection: GetCollection(ctx, collectionName),
+		filter:     bson.D{},
 	}
 }
 
@@ -86,8 +82,128 @@ func (m *Model) FieldsEx(fields ...string) *Model {
 	return m
 }
 
-func (m *Model) Where(where interface{}, args ...interface{}) *Model {
-	// todo
+func (m *Model) WhereEq(key string, value interface{}) *Model {
+	m.filter = append(m.filter, bson.E{
+		Key:   key,
+		Value: value,
+	})
+	return m
+}
+
+func (m *Model) WhereNE(key string, value interface{}) *Model {
+	m.filter = append(m.filter, bson.E{
+		Key:   key,
+		Value: bson.M{"$ne": value},
+	})
+	return m
+}
+
+func (m *Model) WhereGT(key string, value interface{}) *Model {
+	m.filter = append(m.filter, bson.E{
+		Key:   key,
+		Value: bson.M{"$gt": value},
+	})
+	return m
+}
+
+func (m *Model) WhereGTE(key string, value interface{}) *Model {
+	m.filter = append(m.filter, bson.E{
+		Key:   key,
+		Value: bson.M{"$gte": value},
+	})
+	return m
+}
+
+func (m *Model) WhereLT(key string, value interface{}) *Model {
+	m.filter = append(m.filter, bson.E{
+		Key:   key,
+		Value: bson.M{"$lt": value},
+	})
+	return m
+}
+
+func (m *Model) WhereLTE(key string, value interface{}) *Model {
+	m.filter = append(m.filter, bson.E{
+		Key:   key,
+		Value: bson.M{"$lte": value},
+	})
+	return m
+}
+
+func (m *Model) WhereIn(key string, value ...interface{}) *Model {
+	m.filter = append(m.filter, bson.E{
+		Key:   key,
+		Value: bson.M{"$in": value},
+	})
+	return m
+}
+
+func (m *Model) WhereNotIn(key string, value ...interface{}) *Model {
+	m.filter = append(m.filter, bson.E{
+		Key:   key,
+		Value: bson.M{"$nin": value},
+	})
+	return m
+}
+
+func (m *Model) WhereBetween(key string, min, max interface{}) *Model {
+	m.filter = append(m.filter, bson.E{
+		Key:   key,
+		Value: bson.M{"$gte": min, "$lte": max},
+	})
+	return m
+}
+
+func (m *Model) WhereNotBetween(key string, min, max interface{}) *Model {
+	m.filter = append(m.filter, bson.E{
+		Key: key,
+		Value: bson.D{
+			{"$or",
+				bson.A{
+					bson.D{{key, bson.D{{"$gt", max}}}},
+					bson.D{{key, bson.D{{"$lt", min}}}},
+				},
+			},
+		},
+	})
+	return m
+}
+
+func (m *Model) WhereLike(key string, like string) *Model {
+	m.filter = append(m.filter, bson.E{
+		Key:   key,
+		Value: bson.M{"$regex": like, "$options": "im"},
+	})
+	return m
+}
+
+func (m *Model) WhereNotLike(key string, like string) *Model {
+	m.filter = append(m.filter, bson.E{
+		Key: key,
+		Value: bson.M{
+			"$not": bson.M{"$regex": like, "$options": "im"},
+		},
+	})
+	return m
+}
+
+func (m *Model) WhereNull(key ...string) *Model {
+	for _, oneKey := range key {
+		m.filter = append(m.filter, bson.E{
+			Key:   oneKey,
+			Value: nil,
+		})
+	}
+	return m
+}
+
+func (m *Model) WhereNotNull(key ...string) *Model {
+	for _, oneKey := range key {
+		m.filter = append(m.filter, bson.E{
+			Key:   oneKey,
+			Value: bson.M{"$ne": nil},
+		})
+	}
 	return m
 }
 
@@ -109,8 +225,58 @@ func (m *Model) WherePri(args []string) *Model {
 	return m
 }
 
-func (m *Model) Count(ctx context.Context, where ...interface{}) (int64, error) {
-	return m.collection.CountDocuments(ctx, where)
+func (m *Model) Count(ctx context.Context) (int64, error) {
+	return m.collection.CountDocuments(ctx, m.filter, nil)
+}
+
+func (m *Model) Scan(ctx context.Context, pointer interface{}) error {
+	reflectInfo := reflection.OriginTypeAndKind(pointer)
+	if reflectInfo.InputKind != reflect.Ptr {
+		return gerror.NewCode(
+			gcode.CodeInvalidParameter,
+			`the parameter "pointer" for function Scan should type of pointer`,
+		)
+	}
+	switch reflectInfo.OriginKind {
+	case reflect.Slice, reflect.Array:
+		return m.doStructs(ctx, pointer)
+
+	case reflect.Struct, reflect.Invalid:
+		return m.doStruct(ctx, pointer)
+
+	default:
+		return gerror.NewCode(
+			gcode.CodeInvalidParameter,
+			`element of parameter "pointer" for function Scan should type of struct/*struct/[]struct/[]*struct`,
+		)
+	}
+}
+
+func (m *Model) doStruct(ctx context.Context, pointer interface{}) error {
+	cursor, err := m.collection.Find(ctx, m.filter)
+	if err != nil {
+		return err
+	}
+	if cursor.TryNext(ctx) {
+		err = cursor.Decode(pointer)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return nil
+}
+
+func (m *Model) doStructs(ctx context.Context, pointer interface{}) error {
+	cursor, err := m.collection.Find(ctx, m.filter)
+	if err != nil {
+		return err
+	}
+	err = cursor.All(ctx, pointer)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (m *Model) InsertOne(ctx context.Context, document interface{},
@@ -118,69 +284,17 @@ func (m *Model) InsertOne(ctx context.Context, document interface{},
 	return m.collection.InsertOne(ctx, document, opts...)
 }
 
-func (m *Model) Update(ctx context.Context, dataAndWhere ...interface{}) (*mongo.UpdateResult, error) {
-	if len(dataAndWhere) > 0 {
-		if len(dataAndWhere) > 2 {
-			return m.Data(ctx, dataAndWhere[0]).Where(dataAndWhere[1], dataAndWhere[2:]...).Update(ctx)
-		} else if len(dataAndWhere) == 2 {
-			return m.Data(ctx, dataAndWhere[0]).Where(dataAndWhere[1]).Update(ctx)
-		} else {
-			return m.Data(ctx, dataAndWhere[0]).Update(ctx)
-		}
+func (m *Model) Save(ctx context.Context, document interface{},
+	opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
+	update := bson.D{
+		{
+			"$set", document,
+		},
 	}
-	if m.data == nil {
-		return nil, gerror.NewCode(gcode.CodeMissingParameter, "updating table with empty data")
-	}
-	var (
-		updateData                                    = m.data
-		reflectInfo                                   = reflection.OriginTypeAndKind(updateData)
-		fieldNameUpdate                               = m.getSoftFieldNameUpdated()
-		conditionWhere, conditionExtra, conditionArgs = m.formatCondition(ctx, false, false)
-		conditionStr                                  = conditionWhere + conditionExtra
-		err                                           error
-	)
-	if m.unscoped {
-		fieldNameUpdate = ""
-	}
+	return m.collection.UpdateOne(ctx, m.filter, update, opts...)
+}
 
-	switch reflectInfo.OriginKind {
-	case reflect.Map, reflect.Struct:
-		var dataMap map[string]interface{}
-		dataMap, err = ConvertDataForRecord(ctx, m.data)
-		if err != nil {
-			return nil, err
-		}
-		// Automatically update the record updating time.
-		if fieldNameUpdate != "" {
-			dataMap[fieldNameUpdate] = gtime.Now().String()
-		}
-		updateData = dataMap
-
-	default:
-		updates := gconv.String(m.data)
-		// Automatically update the record updating time.
-		if fieldNameUpdate != "" {
-			if fieldNameUpdate != "" && !gstr.Contains(updates, fieldNameUpdate) {
-				updates += fmt.Sprintf(`,%s='%s'`, fieldNameUpdate, gtime.Now().String())
-			}
-		}
-		updateData = updates
-	}
-	newData, err := m.filterDataForInsertOrUpdate(updateData)
-	if err != nil {
-		return nil, err
-	}
-
-	if !gstr.ContainsI(conditionStr, " WHERE ") {
-		intlog.Printf(
-			ctx,
-			`sql condition string "%s" has no WHERE for UPDATE operation, fieldNameUpdate: %s`,
-			conditionStr, fieldNameUpdate,
-		)
-		return nil, gerror.NewCode(
-			gcode.CodeMissingParameter,
-			"there should be WHERE condition statement for UPDATE operation",
-		)
-	}
-	return m.collection.UpdateMany(ctx, m.filter, req, opts)
+func (m *Model) Delete(ctx context.Context,
+	opts ...*options.DeleteOptions) (*mongo.DeleteResult, error) {
+	return m.collection.DeleteMany(ctx, m.filter, opts...)
 }

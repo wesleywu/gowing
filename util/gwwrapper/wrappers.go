@@ -19,6 +19,10 @@ package gwwrapper
 
 import (
 	"context"
+	"reflect"
+	"strings"
+	"time"
+
 	"github.com/WesleyWu/gowing/protobuf/gwtypes"
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/frame/g"
@@ -27,9 +31,6 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"reflect"
-	"strings"
-	"time"
 )
 
 const (
@@ -287,6 +288,9 @@ func AnyCondition(operator gwtypes.OperatorType, multi gwtypes.MultiType, wildca
 }
 
 func AnyInterface(ctx context.Context, any interface{}, tag reflect.StructTag) *anypb.Any {
+	if any == nil {
+		return nil
+	}
 	switch value := any.(type) {
 	case string:
 		return AnyString(value)
@@ -322,8 +326,6 @@ func AnyInterface(ctx context.Context, any interface{}, tag reflect.StructTag) *
 			g.Log().Warningf(ctx, "Cannot convert type %s to *anypb.Any", t.String())
 			return nil
 		}
-		g.Log().Warningf(ctx, "Cannot convert %s types to *anypb.Any", reflect.TypeOf(any).String())
-		return nil
 	}
 }
 

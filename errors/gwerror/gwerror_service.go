@@ -19,6 +19,7 @@ package gwerror
 
 import (
 	"fmt"
+
 	"github.com/gogf/gf/v2/encoding/gjson"
 )
 
@@ -43,8 +44,12 @@ func WrapServiceErrorf(err error, req interface{}, format string, v ...any) Serv
 			reqBody = gjson.MustEncodeString(req)
 		}
 	}
+	code := 500
+	if rerr, ok := err.(RequestError); ok {
+		code = rerr.Code
+	}
 	return ServiceError{
-		Code:    500,
+		Code:    code,
 		Message: fmt.Sprintf(format, v...),
 		ReqBody: reqBody,
 		Err:     err,

@@ -1,10 +1,5 @@
 package mongodb
 
-import (
-	"context"
-	"fmt"
-)
-
 // WhereBuilder holds multiple where conditions in a group.
 type WhereBuilder struct {
 	model       *Model        // A WhereBuilder should be bound to certain Model.
@@ -41,79 +36,4 @@ func (b *WhereBuilder) Clone() *WhereBuilder {
 	newBuilder.whereHolder = make([]WhereHolder, len(b.whereHolder))
 	copy(newBuilder.whereHolder, b.whereHolder)
 	return newBuilder
-}
-
-// Build builds current WhereBuilder and returns the condition string and parameters.
-func (b *WhereBuilder) Build() (ctx context.Context, conditionWhere string, conditionArgs []interface{}) {
-	var (
-		autoPrefix                  = "" // b.model.getAutoPrefix()
-		tableForMappingAndFiltering = b.model.tables
-	)
-	if len(b.whereHolder) > 0 {
-		for _, holder := range b.whereHolder {
-			if holder.Prefix == "" {
-				holder.Prefix = autoPrefix
-			}
-			switch holder.Operator {
-			case whereHolderOperatorWhere, whereHolderOperatorAnd:
-				newWhere, newArgs := formatWhereHolder(ctx, b.model.db, formatWhereHolderInput{
-					WhereHolder: holder,
-					OmitNil:     b.model.option&optionOmitNilWhere > 0,
-					OmitEmpty:   b.model.option&optionOmitEmptyWhere > 0,
-					Schema:      b.model.schema,
-					Table:       tableForMappingAndFiltering,
-				})
-				if len(newWhere) > 0 {
-					if len(conditionWhere) == 0 {
-						conditionWhere = newWhere
-					} else if conditionWhere[0] == '(' {
-						conditionWhere = fmt.Sprintf(`%s AND (%s)`, conditionWhere, newWhere)
-					} else {
-						conditionWhere = fmt.Sprintf(`(%s) AND (%s)`, conditionWhere, newWhere)
-					}
-					conditionArgs = append(conditionArgs, newArgs...)
-				}
-
-			case whereHolderOperatorOr:
-				newWhere, newArgs := formatWhereHolder(ctx, b.model.db, formatWhereHolderInput{
-					WhereHolder: holder,
-					OmitNil:     b.model.option&optionOmitNilWhere > 0,
-					OmitEmpty:   b.model.option&optionOmitEmptyWhere > 0,
-					Schema:      b.model.schema,
-					Table:       tableForMappingAndFiltering,
-				})
-				if len(newWhere) > 0 {
-					if len(conditionWhere) == 0 {
-						conditionWhere = newWhere
-					} else if conditionWhere[0] == '(' {
-						conditionWhere = fmt.Sprintf(`%s OR (%s)`, conditionWhere, newWhere)
-					} else {
-						conditionWhere = fmt.Sprintf(`(%s) OR (%s)`, conditionWhere, newWhere)
-					}
-					conditionArgs = append(conditionArgs, newArgs...)
-				}
-			}
-		}
-	}
-	return
-}
-
-// convertWhereBuilder converts parameter `where` to condition string and parameters if `where` is also a WhereBuilder.
-func (b *WhereBuilder) convertWhereBuilder(where interface{}, args []interface{}) (newWhere interface{}, newArgs []interface{}) {
-	var builder *WhereBuilder
-	switch v := where.(type) {
-	case WhereBuilder:
-		builder = &v
-
-	case *WhereBuilder:
-		builder = v
-	}
-	if builder != nil {
-		conditionWhere, conditionArgs := builder.Build()
-		if conditionWhere != "" && len(b.whereHolder) == 0 {
-			conditionWhere = "(" + conditionWhere + ")"
-		}
-		return conditionWhere, conditionArgs
-	}
-	return where, args
 }
