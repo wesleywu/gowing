@@ -3,13 +3,14 @@ package mongodb
 import (
 	"context"
 	"fmt"
-	"github.com/WesleyWu/gowing/util/gworm/mongodb/internal/reflection"
+	"reflect"
+
 	"github.com/gogf/gf/v2/text/gregex"
 	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/gogf/gf/v2/util/gmeta"
 	"github.com/gogf/gf/v2/util/gutil"
-	"reflect"
+	"github.com/wesleywu/gowing/util/gworm/mongodb/internal/reflection"
 )
 
 // Data sets the operation data for the model.

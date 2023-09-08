@@ -1,9 +1,10 @@
 package codecs
 
 import (
-	"github.com/WesleyWu/gowing/protobuf/gwmongo"
 	"reflect"
 	"time"
+
+	"github.com/wesleywu/gowing/protobuf/gwmongo"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"

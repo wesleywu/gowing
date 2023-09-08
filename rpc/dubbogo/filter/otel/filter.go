@@ -19,12 +19,13 @@ package otel
 
 import (
 	"context"
+
 	"dubbo.apache.org/dubbo-go/v3/common/extension"
 	"dubbo.apache.org/dubbo-go/v3/filter"
 	dubbogoTrace "dubbo.apache.org/dubbo-go/v3/filter/otel/trace"
 	"dubbo.apache.org/dubbo-go/v3/protocol"
-	"github.com/WesleyWu/gowing/rpc/dubbogo/keys"
-	"github.com/WesleyWu/gowing/util/gwmap"
+	"github.com/wesleywu/gowing/rpc/dubbogo/keys"
+	"github.com/wesleywu/gowing/util/gwmap"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"

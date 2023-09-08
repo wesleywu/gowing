@@ -1,4 +1,4 @@
-module github.com/WesleyWu/gowing
+module github.com/wesleywu/gowing
 
 go 1.19
 

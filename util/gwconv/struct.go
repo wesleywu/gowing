@@ -19,14 +19,15 @@ package gwconv
 
 import (
 	"context"
-	"github.com/WesleyWu/gowing/util/gwwrapper"
+	"reflect"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/gogf/gf/v2/util/gtag"
+	"github.com/wesleywu/gowing/util/gwwrapper"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
-	"reflect"
 )
 
 // IUnmarshallable is the interface for custom defined types customizing value assignment.

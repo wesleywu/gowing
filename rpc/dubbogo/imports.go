@@ -17,7 +17,9 @@
 
 package dubbogo
 
-import _ "github.com/WesleyWu/gowing/rpc/dubbogo/filter/cache"
-import _ "github.com/WesleyWu/gowing/rpc/dubbogo/filter/validation"
-import _ "github.com/WesleyWu/gowing/rpc/dubbogo/filter/otel"
-import _ "github.com/WesleyWu/gowing/rpc/dubbogo/filter/trace"
+import (
+	_ "github.com/wesleywu/gowing/rpc/dubbogo/filter/cache"
+	_ "github.com/wesleywu/gowing/rpc/dubbogo/filter/otel"
+	_ "github.com/wesleywu/gowing/rpc/dubbogo/filter/trace"
+	_ "github.com/wesleywu/gowing/rpc/dubbogo/filter/validation"
+)

@@ -19,7 +19,7 @@ syntax = "proto3";
 
 package gmeta;
 
-option go_package = "github.com/WesleyWu/gowing/protobuf/gmeta";
+option go_package = "github.com/wesleywu/gowing/protobuf/gmeta";
 option java_package = "gowing.protobuf.gmeta";
 option java_outer_classname = "WrappersProto";
 option java_multiple_files = true;

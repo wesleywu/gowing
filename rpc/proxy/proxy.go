@@ -19,11 +19,12 @@ package proxy
 
 import (
 	"context"
-	"github.com/WesleyWu/gowing/rpc/inproc/interceptor/cache"
-	"github.com/WesleyWu/gowing/rpc/inproc/types"
-	"github.com/WesleyWu/gowing/util/gwconv"
-	"google.golang.org/protobuf/proto"
 	"reflect"
+
+	"github.com/wesleywu/gowing/rpc/inproc/interceptor/cache"
+	"github.com/wesleywu/gowing/rpc/inproc/types"
+	"github.com/wesleywu/gowing/util/gwconv"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewInvocationProxy is a proxy function which wrap the original function with interceptors

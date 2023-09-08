@@ -7,9 +7,10 @@
 package reflection_test
 
 import (
-	"github.com/WesleyWu/gowing/util/gworm/mongodb/internal/reflection"
 	"reflect"
 	"testing"
+
+	"github.com/wesleywu/gowing/util/gworm/mongodb/internal/reflection"
 
 	"github.com/gogf/gf/v2/test/gtest"
 )

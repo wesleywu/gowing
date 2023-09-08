@@ -19,11 +19,12 @@ package boot
 
 import (
 	"fmt"
-	"github.com/WesleyWu/gowing"
+	"strings"
+
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/glog"
 	"github.com/gogf/gf/v2/os/gtime"
-	"strings"
+	"github.com/wesleywu/gowing"
 )
 
 func init() {

@@ -3,10 +3,10 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/WesleyWu/gowing/errors/gwerror"
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/util/gvalid"
+	"github.com/wesleywu/gowing/errors/gwerror"
 )
 
 func ResponseJsonWrapper(r *ghttp.Request) {

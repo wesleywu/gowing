@@ -19,15 +19,16 @@ package dubbogo
 
 import (
 	"context"
+	"path"
+
 	"dubbo.apache.org/dubbo-go/v3/common/constant"
 	"dubbo.apache.org/dubbo-go/v3/common/extension"
 	"dubbo.apache.org/dubbo-go/v3/config"
-	"github.com/WesleyWu/gowing/rpc/dubbogo/keys"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/natefinch/lumberjack"
-	"path"
+	"github.com/wesleywu/gowing/rpc/dubbogo/keys"
 )
 
 func StartProvider(_ context.Context, registry *Registry, provider *ProviderInfo, logger *LoggerOption) error {

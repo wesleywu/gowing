@@ -19,12 +19,13 @@ package trace
 
 import (
 	"context"
+
 	"dubbo.apache.org/dubbo-go/v3/common/extension"
 	"dubbo.apache.org/dubbo-go/v3/filter"
 	"dubbo.apache.org/dubbo-go/v3/protocol"
-	"github.com/WesleyWu/gowing/rpc/dubbogo/keys"
-	"github.com/WesleyWu/gowing/util/gwmap"
 	"github.com/gogf/gf/v2/net/gtrace"
+	"github.com/wesleywu/gowing/rpc/dubbogo/keys"
+	"github.com/wesleywu/gowing/util/gwmap"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )
