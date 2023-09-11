@@ -198,7 +198,7 @@ func (m *Model) WhereNotBetween(column string, min, max interface{}) *Model {
 	return m
 }
 
-func (m *Model) WhereIn(column string, in interface{}) *Model {
+func (m *Model) WhereIn(column string, in []interface{}) *Model {
 	switch m.Type {
 	case GF_ORM:
 		m.GfModel = m.GfModel.WhereIn(column, in)
@@ -210,7 +210,7 @@ func (m *Model) WhereIn(column string, in interface{}) *Model {
 	return m
 }
 
-func (m *Model) WhereNotIn(column string, in interface{}) *Model {
+func (m *Model) WhereNotIn(column string, in []interface{}) *Model {
 	switch m.Type {
 	case GF_ORM:
 		m.GfModel = m.GfModel.WhereNotIn(column, in)

@@ -854,14 +854,14 @@ func parseField(ctx context.Context, req interface{}, columnName string, tag ref
 			if err != nil {
 				return nil, err
 			}
-			valueString = decorateValueStrForWildcard(valueString, wildcard, m.Type)
 			switch wildcard {
 			case gwtypes.WildcardType_Contains:
 			case gwtypes.WildcardType_StartsWith:
 			case gwtypes.WildcardType_EndsWith:
+				valueString = decorateValueStrForWildcard(valueString, wildcard, m.Type)
 				return m.WhereLike(columnName, valueString), nil
 			default:
-				return m.WhereIn(columnName, valueString), nil
+				return m.Where(columnName, valueString), nil
 			}
 		} else {
 			return m.Where(columnName, valueString), nil
@@ -891,7 +891,7 @@ func parseFieldSlice[T any](columnName string, tag reflect.StructTag, value []T,
 				return m.WhereBetween(columnName, value[0], value[1]), nil
 			}
 		default:
-			return m.WhereIn(columnName, value), nil
+			return m.WhereIn(columnName, gconv.SliceAny(value)), nil
 		}
 	} else {
 		switch len(value) {
@@ -900,7 +900,7 @@ func parseFieldSlice[T any](columnName string, tag reflect.StructTag, value []T,
 		case 1:
 			return m.Where(columnName, value[0]), nil
 		default:
-			return m.WhereIn(columnName, value), nil
+			return m.WhereIn(columnName, gconv.SliceAny(value)), nil
 		}
 	}
 	return m, nil
@@ -914,7 +914,7 @@ func parseFieldConditionSingle(columnName string, condition *gwtypes.Condition, 
 	case gwtypes.OperatorType_EQ:
 		switch condition.Multi {
 		case gwtypes.MultiType_Exact:
-			return m.WhereIn(columnName, value), nil
+			return m.Where(columnName, value), nil
 		case gwtypes.MultiType_Between:
 			return m, gerror.Newf("Multi值为'%s'，但传入的Value: '%s'并非数组", gwtypes.MultiType_name[int32(gwtypes.MultiType_Between)], gconv.String(value))
 		case gwtypes.MultiType_NotBetween:
@@ -968,7 +968,7 @@ func parseFieldConditionSlice[T any](columnName string, condition *gwtypes.Condi
 			if valueLen == 1 {
 				return m.Where(columnName, valueSlice[0]), nil
 			} else {
-				return m.WhereIn(columnName, valueSlice), nil
+				return m.WhereIn(columnName, gconv.SliceAny(valueSlice)), nil
 			}
 		case gwtypes.MultiType_Between:
 			if valueLen == 1 {
@@ -990,13 +990,13 @@ func parseFieldConditionSlice[T any](columnName string, condition *gwtypes.Condi
 			if valueLen == 1 {
 				return m.Where(columnName, valueSlice[0]), nil
 			} else {
-				return m.WhereIn(columnName, valueSlice), nil
+				return m.WhereIn(columnName, gconv.SliceAny(valueSlice)), nil
 			}
 		case gwtypes.MultiType_NotIn:
 			if valueLen == 1 {
 				return m.WhereNot(columnName, valueSlice[0]), nil
 			} else {
-				return m.WhereNotIn(columnName, valueSlice), nil
+				return m.WhereNotIn(columnName, gconv.SliceAny(valueSlice)), nil
 			}
 		}
 	case gwtypes.OperatorType_NE:

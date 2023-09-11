@@ -130,18 +130,22 @@ func (m *Model) WhereLTE(key string, value interface{}) *Model {
 	return m
 }
 
-func (m *Model) WhereIn(key string, value ...interface{}) *Model {
+func (m *Model) WhereIn(key string, value []interface{}) *Model {
 	m.filter = append(m.filter, bson.E{
-		Key:   key,
-		Value: bson.M{"$in": value},
+		key,
+		bson.M{
+			"$in": bson.A(value),
+		},
 	})
 	return m
 }
 
-func (m *Model) WhereNotIn(key string, value ...interface{}) *Model {
+func (m *Model) WhereNotIn(key string, value []interface{}) *Model {
 	m.filter = append(m.filter, bson.E{
-		Key:   key,
-		Value: bson.M{"$nin": value},
+		key,
+		bson.M{
+			"$nin": bson.A(value),
+		},
 	})
 	return m
 }
