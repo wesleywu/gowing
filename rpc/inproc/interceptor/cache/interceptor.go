@@ -122,7 +122,7 @@ func (s *InterceptorCache[TReq, TRes]) InterceptMethod(next *types.MethodInvocat
 			return result, nil
 		}
 	callNext:
-		result, err = next.Method(ctx, req)
+		result, err = next.CallMethod(ctx, req)
 		if cacheSetting.Enabled {
 			if result.ProtoReflect() != nil && err == nil { // normal res without error, may need to save it back to cache
 				if cacheKey == nil {
@@ -142,7 +142,7 @@ func (s *InterceptorCache[TReq, TRes]) InterceptMethod(next *types.MethodInvocat
 		return result, err
 	}
 	return &types.MethodInvocation[TReq, TRes]{
-		Method:      nextMethodFunc,
+		SvcMethod:   nextMethodFunc,
 		ServiceName: next.ServiceName,
 		MethodName:  next.MethodName,
 	}

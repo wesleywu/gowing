@@ -29,9 +29,10 @@ import (
 
 // NewInvocationProxy is a proxy function which wrap the original function with interceptors
 // todo customize interceptors
-func NewInvocationProxy[TReq proto.Message, TRes proto.Message](serviceName, methodName string, fn types.MethodFunc[TReq, TRes]) types.MethodFunc[TReq, TRes] {
+func NewInvocationProxy[TReq proto.Message, TRes proto.Message](serviceName, methodName string, fn types.SvcMethodFunc[TReq, TRes]) types.SvcMethodFunc[TReq, TRes] {
 	invocation := &types.MethodInvocation[TReq, TRes]{
-		Method:      fn,
+		IsRpc:       false,
+		SvcMethod:   fn,
 		ServiceName: serviceName,
 		MethodName:  methodName,
 	}
@@ -39,11 +40,11 @@ func NewInvocationProxy[TReq proto.Message, TRes proto.Message](serviceName, met
 	for _, interceptor := range invocation.Interceptors {
 		invocation = interceptor(invocation)
 	}
-	return invocation.Method
+	return invocation.SvcMethod
 }
 
 func CallServiceMethod[TReq proto.Message, TRes proto.Message, Req interface{}, Res interface{}](
-	ctx context.Context, req Req, allowAllNilFields bool, fn types.MethodFunc[TReq, TRes]) (res Res, err error) {
+	ctx context.Context, req Req, allowAllNilFields bool, fn types.RpcMethodFunc[TReq, TRes]) (res Res, err error) {
 	var (
 		in  TReq
 		out TRes

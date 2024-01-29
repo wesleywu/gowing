@@ -19,16 +19,29 @@ package types
 
 import (
 	"context"
+
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )
 
-type MethodFunc[TReq proto.Message, TRes proto.Message] func(context.Context, TReq) (TRes, error)
+type SvcMethodFunc[TReq proto.Message, TRes proto.Message] func(context.Context, TReq) (TRes, error)
+
+type RpcMethodFunc[TReq proto.Message, TRes proto.Message] func(context.Context, TReq, ...grpc.CallOption) (TRes, error)
 
 type InterceptorFunc[TReq proto.Message, TRes proto.Message] func(next *MethodInvocation[TReq, TRes]) *MethodInvocation[TReq, TRes]
 
 type MethodInvocation[TReq proto.Message, TRes proto.Message] struct {
+	IsRpc        bool
 	Interceptors []InterceptorFunc[TReq, TRes]
-	Method       MethodFunc[TReq, TRes]
+	SvcMethod    SvcMethodFunc[TReq, TRes]
+	RpcMethod    RpcMethodFunc[TReq, TRes]
 	ServiceName  string
 	MethodName   string
+}
+
+func (mi *MethodInvocation[TReq, TRes]) CallMethod(ctx context.Context, req TReq) (res TRes, err error) {
+	if mi.IsRpc {
+		return mi.RpcMethod(ctx, req)
+	}
+	return mi.SvcMethod(ctx, req)
 }
